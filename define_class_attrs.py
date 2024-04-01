@@ -50,6 +50,17 @@ Employee_attrs(
     performance_rating=3,
 ).calculate_severance_package()
 
+# %% new attribute
+Sally = Employee_attrs(
+    name="John Doe",
+    email="john.doe@example.com",
+    joining_date=datetime(2022, 1, 1),
+    passed_probation=True,
+    monthly_salary=5000,
+    performance_rating=3,
+)
+Sally.remarks = "She is the boss's daughter."  # new attribute
+Sally.calculate_severance_package()
 
 # %% incorrect attribute type
 Employee_attrs(

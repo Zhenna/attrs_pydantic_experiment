@@ -1,17 +1,27 @@
 # %%
-from pydantic import BaseModel
+from attrs import define, field, validators
 from datetime import datetime
 
-# Define a class using Pydantic
+# Define a class with attributes using attrs
 
 
-class Employee_pydantic(BaseModel):
-    name: str
-    email: str
-    joining_date: datetime
-    passed_probation: bool
-    monthly_salary: float
-    performance_rating: float
+@define
+class Employee_attrs:
+    name: str = field(validator=validators.instance_of(str))
+    email: str = field(
+        validator=validators.matches_re(
+            r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,7}\b"
+        )
+    )
+    joining_date: datetime = field(validator=validators.instance_of(datetime))
+    passed_probation: bool = field(validator=validators.instance_of(bool))
+    monthly_salary: float = field(validator=validators.ge(0))
+    performance_rating: float = field(validator=[validators.ge(1), validators.le(5)])
+
+    @joining_date.validator
+    def validate_joining_date(self, attribute, value):
+        if value > datetime.today():
+            raise ValueError("Joining date cannot be in the future.")
 
     def calculate_months_of_service(self) -> int:
         import math
@@ -39,8 +49,8 @@ class Employee_pydantic(BaseModel):
         return severance_package
 
 
-# %% correct attribute type
-Employee_pydantic(
+# %% correct values and types
+Employee_attrs(
     name="John Doe",
     email="john.doe@example.com",
     joining_date=datetime(2022, 1, 1),
@@ -49,30 +59,49 @@ Employee_pydantic(
     performance_rating=3,
 ).calculate_severance_package()
 
-# %% new attribute
-Sally = Employee_pydantic(
+# %% wrong email
+Employee_attrs(
+    name="John Doe",
+    email="john.doe",  # email is not valid
+    joining_date=datetime(2022, 1, 1),
+    passed_probation=True,
+    monthly_salary=5000,
+    performance_rating=3,
+).calculate_severance_package()
+
+# %% wrong date
+Employee_attrs(
+    name="John Doe",
+    email="john.doe@example.com",
+    joining_date=datetime(2025, 1, 1),  # date is in future
+    passed_probation=True,
+    monthly_salary=5000,
+    performance_rating=3,
+).calculate_severance_package()
+
+
+# %% wrong performance rating
+Employee_attrs(
     name="John Doe",
     email="john.doe@example.com",
     joining_date=datetime(2022, 1, 1),
     passed_probation=True,
     monthly_salary=5000,
-    performance_rating=3,
-)
-Sally.remarks = "She is the boss's daughter."  # new attribute
-Sally.calculate_severance_package()
+    performance_rating=0,  # cannot be 0
+).calculate_severance_package()
 
-# %% positional arguments
-Employee_pydantic(
-    "John Doe",
-    "john.doe@example.com",
-    datetime(2022, 1, 1),
-    True,
-    5000,
-    3,
+# %% negative salary
+Employee_attrs(
+    name="John Doe",
+    email="john.doe@example.com",
+    joining_date=datetime(2022, 1, 1),
+    passed_probation=True,
+    monthly_salary=-5000,  # cannot be negative
+    performance_rating=3,
 ).calculate_severance_package()
 
 # %% incorrect attribute type
-Employee_pydantic(
+Employee_attrs(
     name="John Doe",
     email="john.doe@example.com",
     joining_date=datetime(2022, 1, 1),
@@ -80,15 +109,3 @@ Employee_pydantic(
     monthly_salary=5000,
     performance_rating=3,
 ).calculate_severance_package()
-
-
-# %% keyword arguments not in order
-Employee_pydantic(
-    email="john.doe@example.com",
-    joining_date=datetime(2022, 1, 1),
-    passed_probation=True,
-    monthly_salary=5000,
-    performance_rating=3,
-    name="John Doe",  # not in order
-).calculate_severance_package()
-# %%
